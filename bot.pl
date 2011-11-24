@@ -1,23 +1,26 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Switch;
-#use Socket;
+use feature qw(switch);
+use POSIX qw(strftime);
 
 use POE qw(Component::IRC::State);
 
+our $version = `git log -1 --pretty=oneline|cut -d' ' -f1 2>/dev/null`;
+
 my $irc = POE::Component::IRC->spawn(
-    nick     => 'Fi',
+    nick     => 'Fi2',
     ircname  => 'Fi, at your service',
     username => 'Fi',
     server   => 'irc.ext3.net',
     port     => '6667',
+    raw      => 1
     
 ) or die "Oh noooo! $!";
 
 POE::Session->create(
     package_states => [
-    main => [ qw(_default _start irc_001 irc_public irc_ctcp_action) ],
+    main => [ qw(_default _start irc_001 irc_public irc_ctcp_action irc_raw irc_raw_out) ],
     ],
     heap => { irc => $irc },
 );
@@ -29,6 +32,8 @@ sub _start {
 
     # retrieve our component's object from the heap where we stashed it
     my $irc = $heap->{irc};
+
+    doLog( '> Bot starting...!', 'info' );
 
     $irc->yield( register => 'all' );
     $irc->yield( connect => { } );
@@ -43,10 +48,10 @@ sub irc_001 {
     # specified server.
     my $irc = $sender->get_heap();
 
-    print "Connected to ", $irc->server_name(), "\n";
+    doLog('> Connected to ' .  $irc->server_name(), 'info' );
 
     # we join our channels
-    doJoin( '#fi,#ext3' );
+    doJoin( '#fi' );
     return;
 }
 
@@ -56,43 +61,79 @@ sub irc_public {
     $channel = $channel->[0]; # Get rid of the array ref
 
     my @what = split( /\s/, $message );
-    my $command = ( shift(@what) );
+    my $command = ( shift( @what ) );
+
+    doLog( "<$nick/$channel> $message", 'irc' );
 
     if( substr( $command, 0, 1 ) eq '.' ) {
         $command = lc( substr( $command, 1, length( $command ) - 1 ) );
-        switch ( $command ) {
-            case "dns" { next }
-            case "host" { command_host( $nick, $channel, $what[0] ) }
-            case "eval" { command_eval( $nick, $channel, join( ' ', @what ) ) }
-        }
     }
 
+    my $realNick = lc($sender->[0]->{RealNick});
+
+    if( lc( $command ) =~ /(fi|$realNick)[:,;!]/ ) {
+        $command = ( shift( @what ) );
+    }
+
+    parse_command( $nick, $command, $channel, @what );
+
     return;
+}
+
+sub parse_command {
+    my ( $nick, $cmd, $target, @what ) = @_;
+
+    given ( $cmd ) {
+        when ("dns") { continue; }
+        when ("host") { command_host( $nick, $target, $what[0] ); }
+        when ("rdns") { command_rdns( $nick, $target, $what[0] ); }
+        when ("eval") { command_eval( $nick, $target, join( ' ', @what ) ); }
+        when ("version") { command_version( $nick, $target ); }
+        when ("choose") { command_choose( $nick, $target, join( ' ', @what ) ); }
+    }
 }
 
 sub irc_ctcp_action {
     my ($who, $target, $action) = @_[ARG0 .. ARG2];
     my ($nick, $address) = ( split /!/, $who );
+    $target = $target->[0];
 
-    if( $action =~ /slaps (\w+) .*with (a|some) (\w+ )?(\w+)/ ) {
+    doLog( "* <$nick/$target> $action", 'irc' );
+
+    if( $action =~ /slaps (\w+) .*with (a|some|his|her) (\w+ )?(\w+)/ ) {
         my ($victim, $adjective, $noun) = ($1, $3, $4);
         my $myNoun = int( rand(10) );
-        switch ( $myNoun ) {
-            case 0 { $myNoun = 'an episode of Lost' }
-            case 1 { $myNoun = 'the river' }
-            case 2 { $myNoun = 'the street' }
-            case 3 { $myNoun = 'a brothel' }
-            case 4 { $myNoun = 'SnoFox\'s mom' }
-            case 5 { $myNoun = 'the sewer' }
-            case 6 { $myNoun = 'Nikki\'s food bowl' }
-            case 7 { $myNoun = 'a firey fire' }
-            case 8 { $myNoun = 'the path of a flaming Volkswagon' }
-            case 9 { $myNoun = 'a taco' }
-            case 10 { $myNoun = 'Super Mario World' }
+        given ( $myNoun ) {
+            when (0) { $myNoun = 'an episode of Lost'; }
+            when (1) { $myNoun = 'the river'; }
+            when (2) { $myNoun = 'the street'; }
+            when (3) { $myNoun = 'a brothel'; }
+            when (4) { $myNoun = 'SnoFox\'s mom'; }
+            when (5) { $myNoun = 'the sewer'; }
+            when (6) { $myNoun = 'Nikki\'s food bowl'; }
+            when (7) { $myNoun = 'a firey fire'; }
+            when (8) { $myNoun = 'the path of a flaming Volkswagon'; }
+            when (9) { $myNoun = 'a taco'; }
+            when (10) { $myNoun = 'Super Mario World'; }
         }
         doAction( $target, "saves $victim by catching the $noun and throwing it into $myNoun." );
     }
     return;
+}
+
+sub irc_raw {
+    my $string = $_[ARG0];
+
+    if( uc( ( split( / / , $string ) )[1] ) ne 'PRIVMSG' ) {
+        doLog( '-> ' . $string, 'irc_raw' );
+    }
+}
+
+sub irc_raw_out {
+    my $string = $_[ARG0];
+
+    print "Raw out\n";
+    doLog( '<- ' . $string, 'irc_raw' );
 }
 
 # We registered for all events, this will produce some debug info.
@@ -137,13 +178,20 @@ sub doDebug {
     print 'DEBUG: ' . $_[0] . "\n";
 }
 
+sub doLog {
+    my ($string, $level, $target) = @_;
+    # $target is currently unused
+    
+    print '[' . strftime('%H:%m', localtime() ) . '] ' . $string . "\n";
+}
+
 sub command_host {
     my ($nick, $chan, $arg) = @_;
 
-    # if( $arg =~ // ) {
-    #    command_rdns($nick, $chan, $arg);
-    #    return;
-    #}
+     if( $arg =~ /(\d{1,3}\.){3}\d{1,3}/ ) {
+        command_rdns($nick, $chan, $arg);
+        return;
+    }
 
     my $ip = gethostbyname($arg);
 
@@ -152,6 +200,29 @@ sub command_host {
         doMsg( $chan, "Master $nick, I have resolved $arg to " . inet_ntoa($ip) );
     } else {
         doMsg( $chan, "Master $nick, I cannot resolve $arg. Perhaps it does not exist?" );
+    }
+}
+
+sub command_rdns {
+    my ($nick, $chan, $arg) = @_;
+    use Socket;
+    my $hostname = gethostbyaddr( inet_aton( $arg ), AF_INET );
+
+    if( defined( $hostname ) ) {
+        doMsg( $chan, "Master $nick, $arg has the reverse DNS record of $hostname" );
+    } else {
+        doMsg( $chan, "Master $nick, $arg does not appear to have an active reverse DNS record." );
+    }
+}
+
+sub command_vomit {
+    my ($nick, $chan, $cmd, $args) = @_;
+
+    if( lc( $nick ) eq 'snofox' ) {
+        doMsg( $chan, 'I am attempting to send a raw line to the server through $irc->yield()' );
+        $irc->yield( $cmd => $args );
+    } else {
+        doMsg( $chan, "I apologize, $nick. However, I am directed not to issue the VOMIT command for any use aside from Master SnoFox." );
     }
 }
 
@@ -167,4 +238,24 @@ sub command_eval {
     } else {
         doMsg( $chan, "I apologize, $nick. However, I am directed not to issue the EVAL command for any use aside from Master SnoFox." );
     }
+}
+
+sub command_version {
+    my ($nick, $chan) = @_;
+
+    if( defined($version) ) {
+        doMsg( $chan, 'Master ' . $nick . ', according to my records, my software version is Git commit ID ' . $version );
+    } else {
+        doMsg( $chan, 'Master ' . $nick . ', according to my records, my software version is pre-alpha.' );
+    }
+}
+
+sub command_choose {
+    my ($nick, $chan, $args) = @_;
+    
+    my @options = split( / or / , $args );
+
+    my $pick = int( rand($#options + 1) );
+
+    doMsg( $chan, "Master $nick, I recommend the following option: $options[$pick]" );
 }
