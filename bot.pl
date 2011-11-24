@@ -215,17 +215,6 @@ sub command_rdns {
     }
 }
 
-sub command_vomit {
-    my ($nick, $chan, $cmd, $args) = @_;
-
-    if( lc( $nick ) eq 'snofox' ) {
-        doMsg( $chan, 'I am attempting to send a raw line to the server through $irc->yield()' );
-        $irc->yield( $cmd => $args );
-    } else {
-        doMsg( $chan, "I apologize, $nick. However, I am directed not to issue the VOMIT command for any use aside from Master SnoFox." );
-    }
-}
-
 sub command_eval {
     my ($nick, $chan, $args) = @_;
 
