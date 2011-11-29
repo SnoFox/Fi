@@ -1,4 +1,8 @@
 #!/usr/bin/perl
+
+# This file is part of Fi. Licensing information can be found in the LICENSE file.
+# If the LICENSE file is missing, visit http://github.com/SnoFox/Fi/blob/master/LICENSE for a copy.
+
 use strict;
 use warnings;
 use feature qw(:5.10);
