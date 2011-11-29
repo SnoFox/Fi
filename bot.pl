@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use feature qw(switch);
+use feature qw(:5.10);
 use POSIX qw(strftime);
 
 use POE qw(Component::IRC::State);
@@ -9,12 +9,12 @@ use POE qw(Component::IRC::State);
 our $version = `git log -1 --pretty=oneline|cut -d' ' -f1 2>/dev/null`;
 
 my $irc = POE::Component::IRC->spawn(
-    nick     => 'Fi2',
+    nick     => 'Fi',
     ircname  => 'Fi, at your service',
     username => 'Fi',
     server   => 'irc.ext3.net',
-    port     => '6667',
-    raw      => 1
+    port     => '7000',
+    raw      => 0
     
 ) or die "Oh noooo! $!";
 
@@ -73,6 +73,10 @@ sub irc_public {
 
     if( lc( $command ) =~ /(fi|$realNick)[:,;!]/ ) {
         $command = ( shift( @what ) );
+    }
+
+    if( lc( join( ' ', @what ) ) =~ /(badger(,| )?){12}/ ) {
+        doMsg( $channel, 'mushroom mushroom' );
     }
 
     parse_command( $nick, $command, $channel, @what );
