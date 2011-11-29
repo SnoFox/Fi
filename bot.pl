@@ -13,7 +13,7 @@ my $irc = POE::Component::IRC->spawn(
     ircname  => 'Fi, at your service',
     username => 'Fi',
     server   => 'irc.ext3.net',
-    port     => '7000',
+    port     => '6667',
     raw      => 0
     
 ) or die "Oh noooo! $!";
@@ -75,7 +75,7 @@ sub irc_public {
         $command = ( shift( @what ) );
     }
 
-    if( lc( join( ' ', @what ) ) =~ /(badger(,| )?){12}/ ) {
+    if( lc( $message ) =~ /^(badger(,| )?){12}$/ ) {
         doMsg( $channel, 'mushroom mushroom' );
     }
 
