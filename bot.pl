@@ -91,7 +91,7 @@ sub irc_public {
 sub parse_command {
     my ( $nick, $cmd, $target, @what ) = @_;
 
-    given ( $cmd ) {
+    given ( lc( $cmd ) ) {
         when ("dns") { continue; }
         when ("host") { command_host( $nick, $target, $what[0] ); }
         when ("rdns") { command_rdns( $nick, $target, $what[0] ); }
