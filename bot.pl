@@ -13,7 +13,7 @@ use POE qw(Component::IRC::State);
 our $version = `git log -1 --pretty=oneline|cut -d' ' -f1 2>/dev/null`;
 
 my $irc = POE::Component::IRC->spawn(
-    nick     => 'Fi2',
+    nick     => 'Fi',
     ircname  => 'Fi, at your service',
     username => 'Fi',
     server   => 'irc.ext3.net',
@@ -251,8 +251,13 @@ sub command_version {
 sub command_choose {
     my ($nick, $chan, $args) = @_;
     
-    my @options = split( / or / , $args );
+    my @options = split( /( or |, )/ , $args );
 
+    if( $#options <= 1 ) {
+        doMsg( $chan, "Master $nick, to allow me to analyize and recommend an option for you I will require a list of availble options seperated by \"or\" or commas." );
+        doMsg( $chan, "For example, you may ask: \"Fi: choose stripes, waves, round things or square things\". Please beware that using a terminal comma and \"or\" in your list may cause me to pick a blank result!" );
+        return;
+    }
     my $pick = int( rand($#options + 1) );
 
     doMsg( $chan, "Master $nick, I recommend the following option: $options[$pick]" );
