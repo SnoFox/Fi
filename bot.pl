@@ -13,7 +13,7 @@ use POE qw(Component::IRC::State);
 our $version = `git log -1 --pretty=oneline|cut -d' ' -f1 2>/dev/null`;
 
 my $irc = POE::Component::IRC->spawn(
-    nick     => 'Fi',
+    nick     => 'Fi2',
     ircname  => 'Fi, at your service',
     username => 'Fi',
     server   => 'irc.ext3.net',
@@ -98,6 +98,7 @@ sub parse_command {
         when ("eval") { command_eval( $nick, $target, join( ' ', @what ) ); }
         when ("version") { command_version( $nick, $target ); }
         when ("choose") { command_choose( $nick, $target, join( ' ', @what ) ); }
+        when ("phoneletters") { command_phoneLetters( $nick, $target, join( ' ', @what ) ); }
     }
 }
 
@@ -255,4 +256,20 @@ sub command_choose {
     my $pick = int( rand($#options + 1) );
 
     doMsg( $chan, "Master $nick, I recommend the following option: $options[$pick]" );
+}
+
+sub command_phoneLetters {
+    my ($nick, $chan, $args) = @_;
+
+    my $output = lc( $args );
+    $output =~ s/[abc]/2/g;
+    $output =~ s/[def]/3/g;
+    $output =~ s/[ghi]/4/g;
+    $output =~ s/[jkl]/5/g;
+    $output =~ s/[mno]/6/g;
+    $output =~ s/[pqrs]/7/g;
+    $output =~ s/[tuv]/8/g;
+    $output =~ s/[wxyz]/9/g;
+
+    doMsg( $chan, "Master $nick, \"$args\" maps to $output" );
 }
