@@ -11,9 +11,10 @@ use POSIX qw(strftime);
 use POE qw(Component::IRC::State);
 
 our $version = `git log -1 --pretty=oneline|cut -d' ' -f1 2>/dev/null`;
+our $DEVELOPMENT = false;
 
 my $irc = POE::Component::IRC->spawn(
-    nick     => 'Fi2',
+    nick     => 'Fi',
     ircname  => 'Fi, at your service',
     username => 'Fi',
     server   => 'irc.ext3.net',
@@ -226,6 +227,10 @@ sub command_rdns {
 
 sub command_eval {
     my ($nick, $chan, $args) = @_;
+
+    if( !$DEVELOPMENT ) {
+        doMsg( $chan, "I apologize, $nick. However, I am directed not to issue the EVAL command under any circumstances." );
+    }
 
     if( lc( $nick ) eq 'snofox' ) {
         my $output = eval( $args );
