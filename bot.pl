@@ -122,7 +122,7 @@ sub irc_ctcp_action {
             when (5) { $myNoun = 'the sewer'; }
             when (6) { $myNoun = 'Nikki\'s food bowl'; }
             when (7) { $myNoun = 'a firey fire'; }
-            when (8) { $myNoun = 'the path of a flaming Volkswagon'; }
+            when (8) { $myNoun = 'the path of a flaming Volkswagen'; }
             when (9) { $myNoun = 'a taco'; }
             when (10) { $myNoun = 'Super Mario World'; }
         }
